@@ -1,34 +1,19 @@
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
 
-interface Params {
-  message: string;
-}
-
 const script: Firebot.CustomScript<Params> = {
   getScriptManifest: () => {
     return {
-      name: "Starter Custom Script",
-      description: "A starter custom script for build",
-      author: "SomeDev",
-      version: "1.0",
+      name: "Emote Wall Widget",
+      description: "An overlay widget which shows emotes used in chat.",
+      author: "DennisOnTheInternet",
+      version: "0.0.1",
       firebotVersion: "5",
+      website: "https://github.com/dennisrijsdijk/firebot-emotewall-widget",
+      startupOnly: true
     };
   },
-  getDefaultParameters: () => {
-    return {
-      message: {
-        type: "string",
-        default: "Hello World!",
-        description: "Message",
-        secondaryDescription: "Enter a message here",
-        title: "Hello!",
-      },
-    };
-  },
-  run: (runRequest) => {
-    const { logger } = runRequest.modules;
-    logger.info(runRequest.parameters.message);
-  },
+  getDefaultParameters: () => ({ }),
+  run: (runRequest) => { },
 };
 
 export default script;

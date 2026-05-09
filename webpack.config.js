@@ -2,7 +2,7 @@ const path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
 const packageJson = require("./package.json");
 
-module.exports = {
+module.exports = (env) => ({
   target: "node",
   mode: "production",
   devtool: false,
@@ -10,8 +10,10 @@ module.exports = {
     main: "./src/main.ts",
   },
   output: {
-    libraryTarget: "commonjs2",
-    libraryExport: "default",
+    library: {
+      type: "commonjs2",
+      export: "default",
+    },
     path: path.resolve(__dirname, "./dist"),
     filename: `${packageJson.scriptOutputName}.js`,
   },
@@ -23,11 +25,11 @@ module.exports = {
       {
         test: /\.ts$/,
         loader: "ts-loader",
-      },
+      }
     ],
   },
   optimization: {
-    minimize: true,
+    minimize: !env.dev,
 
     minimizer: [
       new TerserPlugin({
@@ -42,4 +44,4 @@ module.exports = {
       }),
     ],
   },
-};
+});
