@@ -1,4 +1,5 @@
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
+import widget from "./widget";
 
 const script: Firebot.CustomScript<Params> = {
   getScriptManifest: () => {
@@ -13,7 +14,9 @@ const script: Firebot.CustomScript<Params> = {
     };
   },
   getDefaultParameters: () => ({ }),
-  run: (runRequest) => { },
+  run: (runRequest) => {
+    runRequest.modules.overlayWidgetsManager.registerOverlayWidgetType(widget);
+  },
 };
 
 export default script;
