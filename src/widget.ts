@@ -58,7 +58,8 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
             function setupLivePreviewWidget(config: typeof event.data.widgetConfig): void {
                 window.emoteWallData.widgetInstances[config.id] = {
                     interval: null,
-                    abortController: new AbortController()
+                    abortController: new AbortController(),
+                    settings: config.settings
                 };
 
                 const instance = window.emoteWallData.widgetInstances[config.id];
@@ -66,7 +67,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                 instance.interval = setInterval(() => {
                     const container = document.getElementById(`emote-wall-${config.id}-container`);
                     if (!container|| instance.abortController.signal.aborted) return;
-                    const eligibleEmotes = window.emoteWallData.livePreviewEmotes.filter(e => e.platform === "twitch" || config.settings.thirdPartyEmotes.includes(e.platform as ThirdPartyEmotePlatform));
+                    const eligibleEmotes = window.emoteWallData.livePreviewEmotes.filter(e => e.platform === "twitch" || instance.settings.thirdPartyEmotes.includes(e.platform as ThirdPartyEmotePlatform));
                     const emoteUrl = eligibleEmotes[Math.floor(Math.random() * eligibleEmotes.length)].url;
                     const emoteElement = document.createElement("img");
                     emoteElement.src = emoteUrl;
@@ -74,8 +75,8 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     emoteElement.style.left = `${Math.random() * 100}%`;
                     emoteElement.style.top = `${Math.random() * 100}%`;
                     emoteElement.style.transform = "translate(-50%, -50%)";
-                    emoteElement.style.maxWidth = `${config.settings.maxWidth}px`;
-                    emoteElement.style.maxHeight = `${config.settings.maxHeight}px`;
+                    emoteElement.style.maxWidth = `${instance.settings.maxWidth}px`;
+                    emoteElement.style.maxHeight = `${instance.settings.maxHeight}px`;
                     container.appendChild(emoteElement);
                     setTimeout(() => {
                         if (instance.abortController.signal.aborted) return;
@@ -100,14 +101,14 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     break;
                 }
                 case "settings-update": {
-                    window.emoteWallData.widgetInstances[event.data.widgetConfig.id]?.abortController.abort();
-                    clearInterval(window.emoteWallData.widgetInstances[event.data.widgetConfig.id].interval);
-                    delete window.emoteWallData.widgetInstances[event.data.widgetConfig.id];
-                    utils.updateWidgetContent(generateWidgetHtml(event.data.widgetConfig));
-                    utils.updateWidgetPosition();
-                    if (event.data.previewMode) {
-                        setupLivePreviewWidget(event.data.widgetConfig);
+                    const container = document.getElementById(`emote-wall-${event.data.widgetConfig.id}-container`);
+                    if (container) {
+                        container.style.width = `${event.data.widgetConfig.position.width}px`;
+                        container.style.height = `${event.data.widgetConfig.position.height}px`;
+                        container.style.zIndex = `${event.data.widgetConfig.zIndex ?? 0}`;
                     }
+                    window.emoteWallData.widgetInstances[event.data.widgetConfig.id].settings = event.data.widgetConfig.settings;
+                    utils.updateWidgetPosition();
                     break;
                 }
                 case "message": {
