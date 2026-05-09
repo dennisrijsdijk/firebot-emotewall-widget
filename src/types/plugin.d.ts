@@ -1,3 +1,5 @@
 type Params = { };
 
-type EmotePlatform = "twitch" | "bttv" | "ffz" | "7tv";
+type ThirdPartyEmotePlatform = "bttv" | "ffz" | "7tv";
+
+type EmotePlatform = "twitch" | ThirdPartyEmotePlatform;
