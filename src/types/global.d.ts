@@ -9,5 +9,6 @@ interface Window {
         }>;
         prepareImages: (maxWidth: number, maxHeight: number, emotes: Array<{ url: string; amount: number }>) => Promise<HTMLImageElement[]>;
         addImagesToWidget: (widgetId: string, images: HTMLImageElement[]) => Promise<void>;
+        arrayShuffle: <T>(array: T[]) => T[];
     };
 }

@@ -147,7 +147,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
 
                     const emotes: Emote[] = event.data.messageData as Emote[];
                     const images = await window.emoteWallData.prepareImages(event.data.widgetConfig.settings.maxWidth, event.data.widgetConfig.settings.maxHeight, emotes);
-                    await window.emoteWallData.addImagesToWidget(event.data.widgetConfig.id, images);
+                    await window.emoteWallData.addImagesToWidget(event.data.widgetConfig.id, window.emoteWallData.arrayShuffle(images));
 
                     break;
                 }
@@ -339,6 +339,13 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                         const animatedEmote = setupAnimation(widgetId, emoteData);
                         window.emoteWallData.widgetInstances[widgetId]?.emotes.push(animatedEmote);
                     }
+                },
+
+                arrayShuffle: <T>(array: T[]) => {
+                    return array
+                        .map((a) => [Math.random(), a])
+                        .sort((a, b) => (a[0] as number) - (b[0] as number))
+                        .map((a) => a[1] as T);
                 }
             };
 
