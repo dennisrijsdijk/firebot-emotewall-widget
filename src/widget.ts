@@ -79,6 +79,16 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     }
                 ]
             }
+        },
+        {
+            name: "animationSpeedMultiplier",
+            title: "Animation Speed Multiplier",
+            description: "A multiplier applied to the speed of animations. Increase this value to make animations faster, or decrease it to make them slower.",
+            type: "number",
+            default: 1,
+            validation: {
+                min: 0.1
+            }
         }
     ],
     supportsLivePreview: true,
@@ -246,6 +256,8 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
 
                 await Promise.all(Object.entries(window.emoteWallData.widgetInstances).map(([id, instance]) => {
                     return Promise.all(instance.emotes.map(async (emoteData) => {
+                        const animationDeltaTime = deltaTime * (instance.settings.animationSpeedMultiplier ?? 1);
+
                         if (!emoteData.startTime) {
                             emoteData.startTime = time;
                             instance.container.appendChild(emoteData.image);
@@ -263,7 +275,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                         }
 
                         if (emoteData.animationData?.function) {
-                            await emoteData.animationData.function(deltaTime);
+                            await emoteData.animationData.function(animationDeltaTime);
                         }
 
                         emoteData.image.style.transform = `translate3d(${emoteData.animationData?.x ?? 0}px, ${emoteData.animationData?.y ?? 0}px, ${emoteData.animationData?.z ?? 0}px) rotate(${emoteData.animationData?.rotation ?? 0}deg)`;

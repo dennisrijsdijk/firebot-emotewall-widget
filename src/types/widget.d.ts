@@ -4,4 +4,5 @@ type EmoteWallWidgetConfig = {
     maxWidth: number;
     emoteDuration: number;
     animations: string[];
+    animationSpeedMultiplier: number;
 };
