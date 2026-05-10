@@ -11,6 +11,16 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
     },
     settingsSchema: [
         {
+            name: "emoteDuration",
+            title: "Emote Duration",
+            description: "The duration that each emote will be displayed on the widget (in seconds).",
+            type: "number",
+            default: 5,
+            validation: {
+                min: 2
+            }
+        },
+        {
             name: "maxWidth",
             title: "Max Emote Width",
             description: "The maximum width of emotes displayed in the widget (in pixels).",
@@ -115,7 +125,8 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
         },
         onInitialLoad: (utils): void => {
             const FADE_DURATION = 0.75;
-            const EMOTE_LIFESPAN = 5;
+            const MIN_EMOTE_DURATION = 2;
+            const DEFAULT_EMOTE_DURATION = 5;
 
             let renderLoopLastTime: DOMHighResTimeStamp = 0;
             let renderLoopCurrentTime: DOMHighResTimeStamp = 0;
@@ -187,6 +198,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     return (await Promise.all(imagePromises)).flat();
                 },
                 addImagesToWidget: async (widgetId, emotes) => {
+                    const emoteLifespan = Math.max(window.emoteWallData.widgetInstances[widgetId].settings.emoteDuration ?? DEFAULT_EMOTE_DURATION, MIN_EMOTE_DURATION);
                     for (const emote of emotes) {
                         emote.style.left = `${Math.random() * 100}%`;
                         emote.style.top = `${Math.random() * 100}%`;
@@ -195,8 +207,8 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                             image: emote,
                             opacity: 0,
                             startTime: performance.now(),
-                            fadeOutStartTime: performance.now() + (EMOTE_LIFESPAN - FADE_DURATION) * 1000,
-                            endTime: performance.now() + EMOTE_LIFESPAN * 1000
+                            fadeOutStartTime: performance.now() + (emoteLifespan - FADE_DURATION) * 1000,
+                            endTime: performance.now() + emoteLifespan * 1000
                         });
                     }
                 }
