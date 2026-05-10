@@ -132,8 +132,8 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                 none: (widgetId, emote) => {
                     const widgetWidth = window.emoteWallData.widgetInstances[widgetId]?.container?.clientWidth;
                     const widgetHeight = window.emoteWallData.widgetInstances[widgetId]?.container?.clientHeight;
-                    const emoteWidth = emote.image.width;
-                    const emoteHeight = emote.image.height;
+                    const emoteWidth = parseFloat(emote.image.style.width.replace("px", ""));
+                    const emoteHeight = parseFloat(emote.image.style.height.replace("px", ""));
                     const maxX = widgetWidth - emoteWidth;
                     const maxY = widgetHeight - emoteHeight;
                     emote.animationData = {
@@ -147,8 +147,8 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                 rise: (widgetId, emote) => {
                     const widgetWidth = window.emoteWallData.widgetInstances[widgetId]?.container?.clientWidth;
                     const widgetHeight = window.emoteWallData.widgetInstances[widgetId]?.container?.clientHeight;
-                    const emoteWidth = emote.image.width;
-                    const emoteHeight = emote.image.height;
+                    const emoteWidth = parseFloat(emote.image.style.width.replace("px", ""));
+                    const emoteHeight = parseFloat(emote.image.style.height.replace("px", ""));
                     const maxX = widgetWidth - emoteWidth;
                     const minY = widgetHeight / 2;
                     const maxY = widgetHeight - (emoteHeight * 1.25);
@@ -167,6 +167,48 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                             emote.animationData!.vy = Math.max(-maxVy, emote.animationData!.vy - appliedGravity * deltaTime);
                         }
                     };
+                    return emote;
+                },
+                bounce: (widgetId, emote) => {
+                    const widgetWidth = window.emoteWallData.widgetInstances[widgetId]?.container?.clientWidth;
+                    const widgetHeight = window.emoteWallData.widgetInstances[widgetId]?.container?.clientHeight;
+                    const emoteWidth = parseFloat(emote.image.style.width.replace("px", ""));
+                    const emoteHeight = parseFloat(emote.image.style.height.replace("px", ""));
+                    const minY = -widgetHeight / 4;
+                    const maxY = widgetHeight / 2;
+                    const minDistanceFromCenter = widgetWidth / 2;
+                    const maxDistanceOutsideEdge = widgetWidth / 4;
+                    const centerX = widgetWidth / 2;
+                    const outsideLeftEdge = -emoteWidth;
+                    const outsideRightEdge = widgetWidth;
+                    const bottomEdge = widgetHeight - emoteHeight;
+                    const bounceRetentionX = 0.85;
+                    const bounceRetentionY = 0.7;
+                    const gravity = 1200;
+                    const minInitialVy = gravity * 0.2;
+                    const maxInitialVy = gravity * 0.7;
+                    const initialX = Math.random() < 0.5 ? Math.random() * (centerX - minDistanceFromCenter - outsideLeftEdge) + outsideLeftEdge : Math.random() * (outsideRightEdge - (centerX + minDistanceFromCenter)) + (centerX + minDistanceFromCenter);
+                    const initialVx = (initialX < centerX ? Math.random() * (maxDistanceOutsideEdge / 2) + (maxDistanceOutsideEdge / 2) : -(Math.random() * (maxDistanceOutsideEdge / 2) + (maxDistanceOutsideEdge / 2))) * Math.max(Math.random(), 0.6) * 2;
+                    emote.animationData = {
+                        x: initialX,
+                        y: Math.random() * (maxY + minY),
+                        width: emoteWidth,
+                        height: emoteHeight,
+                        vx: initialVx,
+                        vy: Math.random() * (maxInitialVy - minInitialVy) + minInitialVy,
+                        function: (deltaTime) => {
+                            emote.animationData!.vy += gravity * deltaTime;
+                            emote.animationData!.x += (emote.animationData!.vx ?? 0) * deltaTime;
+                            emote.animationData!.y += (emote.animationData!.vy ?? 0) * deltaTime;
+
+                            if (emote.animationData!.y > bottomEdge) {
+                                emote.animationData!.y = bottomEdge;
+                                emote.animationData!.vy = -(emote.animationData!.vy) * bounceRetentionY;
+                                emote.animationData!.vx = (emote.animationData!.vx) * bounceRetentionX;
+                            }
+                        }
+                    };
+
                     return emote;
                 }
             };
@@ -230,11 +272,11 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                             image.style.opacity = "0";
                             image.style.position = "absolute";
                             image.onload = () => {
-                                if (image.naturalWidth >= image.naturalHeight) {
-                                    image.style.width = `${maxWidth}px`;
-                                } else {
-                                    image.style.height = `${maxHeight}px`;
-                                }
+                                const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight, 1);
+                                const scaledWidth = image.naturalWidth * scale;
+                                const scaledHeight = image.naturalHeight * scale;
+                                image.style.width = `${scaledWidth}px`;
+                                image.style.height = `${scaledHeight}px`;
 
                                 const emotes: HTMLImageElement[] = [];
                                 for (let i = 0; i < emote.amount; i++) {
@@ -253,7 +295,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                         const emoteData: OverlayEmote = {
                             image: emoteImage,
                             opacity: 0,
-                            lifespan: emoteLifespan,
+                            lifespan: emoteLifespan
                         };
 
                         const setupAnimation = Object.values(animations)[Math.floor(Math.random() * Object.values(animations).length)];
