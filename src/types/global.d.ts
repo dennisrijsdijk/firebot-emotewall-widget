@@ -5,11 +5,19 @@ declare global {
         emoteWallData: {
             livePreviewEmotes: Array<{ platform: EmotePlatform; url: string; }>;
             widgetInstances: Record<string, {
-                interval: ReturnType<typeof setInterval>;
+                previewInterval?: ReturnType<typeof setInterval> | null;
                 settings: EmoteWallWidgetConfig;
-                abortController: AbortController;
+                container: HTMLElement | null;
+                emotes: Array<{
+                    image: HTMLImageElement;
+                    opacity: number;
+                    startTime: number;
+                    fadeOutStartTime: number;
+                    endTime: number;
+                }>
             }>;
-            renderEmotes: (config: WidgetOverlayEvent<EmoteWallWidgetConfig>["data"]["widgetConfig"], utils: IOverlayWidgetEventUtils, emoteUrl: string, amount: number) => Promise<void>;
+            prepareImages: (maxWidth: number, maxHeight: number, emotes: Array<{ url: string; amount: number }>) => Promise<HTMLImageElement[]>;
+            addImagesToWidget: (widgetId: string, images: HTMLImageElement[]) => Promise<void>;
         };
     }
 }
