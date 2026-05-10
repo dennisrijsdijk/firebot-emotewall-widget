@@ -51,10 +51,6 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
     supportsLivePreview: true,
     overlayExtension: {
         eventHandler: (event: WidgetOverlayEvent<EmoteWallWidgetConfig>, utils): void => {
-            function generateWidgetHtml(config: typeof event.data.widgetConfig): string {
-                return `<div id="emote-wall-${config.id}-container" style="position: relative; overflow: hidden; width: ${config.position.width}px; height: ${config.position.height}px; z-index: ${config.zIndex ?? 0};"></div>`;
-            }
-
             function setupLivePreviewWidget(config: typeof event.data.widgetConfig): void {
                 window.emoteWallData.widgetInstances[config.id] = {
                     interval: null,
@@ -65,31 +61,25 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                 const instance = window.emoteWallData.widgetInstances[config.id];
 
                 instance.interval = setInterval(() => {
-                    const container = document.getElementById(`emote-wall-${config.id}-container`);
-                    if (!container|| instance.abortController.signal.aborted) return;
+                    const emotesToSpawn = Math.floor(Math.random() * 2) + 1;
                     const eligibleEmotes = window.emoteWallData.livePreviewEmotes.filter(e => e.platform === "twitch" || instance.settings.thirdPartyEmotes.includes(e.platform as ThirdPartyEmotePlatform));
-                    const emoteUrl = eligibleEmotes[Math.floor(Math.random() * eligibleEmotes.length)].url;
-                    const emoteElement = document.createElement("img");
-                    emoteElement.src = emoteUrl;
-                    emoteElement.style.position = "absolute";
-                    emoteElement.style.left = `${Math.random() * 100}%`;
-                    emoteElement.style.top = `${Math.random() * 100}%`;
-                    emoteElement.style.transform = "translate(-50%, -50%)";
-                    emoteElement.style.maxWidth = `${instance.settings.maxWidth}px`;
-                    emoteElement.style.maxHeight = `${instance.settings.maxHeight}px`;
-                    container.appendChild(emoteElement);
-                    setTimeout(() => {
-                        if (instance.abortController.signal.aborted) return;
-                        emoteElement.remove();
-                    }, 5000);
-                }, 500);
+                    for (let i = 0; i < emotesToSpawn; i++) {
+                        void window.emoteWallData.renderEmote(config, utils, eligibleEmotes[Math.floor(Math.random() * eligibleEmotes.length)].url);
+                    }
+                }, 1000);
             }
 
             switch (event.name) {
                 case "show": {
-                    utils.initializeWidget(generateWidgetHtml(event.data.widgetConfig));
+                    utils.initializeWidget("");
                     if (event.data.previewMode) {
                         setupLivePreviewWidget(event.data.widgetConfig);
+                    } else {
+                        window.emoteWallData.widgetInstances[event.data.widgetConfig.id] = {
+                            interval: null,
+                            abortController: new AbortController(),
+                            settings: event.data.widgetConfig.settings
+                        };
                     }
                     break;
                 }
@@ -101,18 +91,22 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     break;
                 }
                 case "settings-update": {
-                    const container = document.getElementById(`emote-wall-${event.data.widgetConfig.id}-container`);
-                    if (container) {
-                        container.style.width = `${event.data.widgetConfig.position.width}px`;
-                        container.style.height = `${event.data.widgetConfig.position.height}px`;
-                        container.style.zIndex = `${event.data.widgetConfig.zIndex ?? 0}`;
-                    }
                     window.emoteWallData.widgetInstances[event.data.widgetConfig.id].settings = event.data.widgetConfig.settings;
                     utils.updateWidgetPosition();
                     break;
                 }
                 case "message": {
-                    // TODO: Handle chat message event
+                    if (event.data.messageName !== "showEmotes" || event.data.previewMode) {
+                        break;
+                    }
+
+                    const emotes: Emote[] = event.data.messageData as Emote[];
+                    for (const emote of emotes) {
+                        for (let i = 0; i < emote.amount; i++) {
+                            void window.emoteWallData.renderEmote(event.data.widgetConfig, utils, emote.url);
+                        }
+                    }
+
                     break;
                 }
                 default: {
@@ -136,7 +130,29 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     { platform: "7tv", url: "https://cdn.7tv.app/emote/01HVVNFRV00004JB4FF77668BG/4x.avif" }, // blobplead
                     { platform: "7tv", url: "https://cdn.7tv.app/emote/01FZEWNFFG0003BMT7G3FYWE0F/4x.avif" }, // blobHype
                 ],
-                widgetInstances: {}
+                widgetInstances: {},
+                renderEmote: async (config, utils, emoteUrl) => {
+                    const instance = window.emoteWallData.widgetInstances[config.id];
+                    if (!instance) return;
+                    const container = utils.getWidgetContainerElement();
+                    if (!container || instance.abortController.signal.aborted) return;
+                    
+                    const emoteElement = document.createElement("img");
+                    emoteElement.src = emoteUrl;
+                    emoteElement.style.position = "absolute";
+                    emoteElement.style.left = `${Math.random() * 100}%`;
+                    emoteElement.style.top = `${Math.random() * 100}%`;
+                    emoteElement.style.transform = "translate(-50%, -50%)";
+                    emoteElement.style.width = "max-width";
+                    emoteElement.style.height = "auto";
+                    emoteElement.style.maxWidth = `${instance.settings.maxWidth}px`;
+                    emoteElement.style.maxHeight = `${instance.settings.maxHeight}px`;
+                    container.appendChild(emoteElement);
+                    setTimeout(() => {
+                        if (instance.abortController.signal.aborted) return;
+                        emoteElement.remove();
+                    }, 5000);
+                }
             };
         }
     }

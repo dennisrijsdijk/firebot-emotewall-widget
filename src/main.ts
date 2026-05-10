@@ -1,4 +1,5 @@
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
+import setupChatListener from "./chat";
 import widget from "./widget";
 
 const script: Firebot.CustomScript<Params> = {
@@ -16,6 +17,7 @@ const script: Firebot.CustomScript<Params> = {
   getDefaultParameters: () => ({ }),
   run: (runRequest) => {
     runRequest.modules.overlayWidgetsManager.registerOverlayWidgetType(widget);
+    setupChatListener(runRequest.modules);
   },
 };
 
