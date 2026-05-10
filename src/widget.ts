@@ -128,6 +128,49 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
             const MIN_EMOTE_DURATION = 2;
             const DEFAULT_EMOTE_DURATION = 5;
 
+            const animations: Record<string, EmoteWallSetupAnimationFunction> = {
+                none: (widgetId, emote) => {
+                    const widgetWidth = window.emoteWallData.widgetInstances[widgetId]?.container?.clientWidth;
+                    const widgetHeight = window.emoteWallData.widgetInstances[widgetId]?.container?.clientHeight;
+                    const emoteWidth = emote.image.width;
+                    const emoteHeight = emote.image.height;
+                    const maxX = widgetWidth - emoteWidth;
+                    const maxY = widgetHeight - emoteHeight;
+                    emote.animationData = {
+                        x: Math.random() * maxX,
+                        y: Math.random() * maxY,
+                        width: emoteWidth,
+                        height: emoteHeight,
+                    }
+                    return emote;
+                },
+                rise: (widgetId, emote) => {
+                    const widgetWidth = window.emoteWallData.widgetInstances[widgetId]?.container?.clientWidth;
+                    const widgetHeight = window.emoteWallData.widgetInstances[widgetId]?.container?.clientHeight;
+                    const emoteWidth = emote.image.width;
+                    const emoteHeight = emote.image.height;
+                    const maxX = widgetWidth - emoteWidth;
+                    const minY = widgetHeight / 2;
+                    const maxY = widgetHeight - (emoteHeight * 1.25);
+                    const gravity = widgetHeight / 10;
+                    const minDownwardVy = gravity * 0.75;
+                    const maxVy = gravity * 3;
+                    emote.animationData = {
+                        x: Math.random() * maxX,
+                        y: Math.random() * (maxY - minY) + minY,
+                        width: emoteWidth,
+                        height: emoteHeight,
+                        vy: Math.random() * gravity + minDownwardVy,
+                        function: (deltaTime) => {
+                            emote.animationData!.y += (emote.animationData!.vy ?? 0) * deltaTime;
+                            const appliedGravity = emote.animationData!.vy! < 0 ? gravity * 2 : gravity;
+                            emote.animationData!.vy = Math.max(-maxVy, emote.animationData!.vy - appliedGravity * deltaTime);
+                        }
+                    };
+                    return emote;
+                }
+            };
+
             let renderLoopLastTime: DOMHighResTimeStamp = 0;
             let renderLoopCurrentTime: DOMHighResTimeStamp = 0;
             async function renderLoop(time: DOMHighResTimeStamp): Promise<void> {
@@ -138,11 +181,15 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
 
                 await Promise.all(Object.entries(window.emoteWallData.widgetInstances).map(([id, instance]) => {
                     return Promise.all(instance.emotes.map(async (emoteData) => {
-                        if (performance.now() >= emoteData.endTime) {
+                        if (!emoteData.startTime) {
+                            emoteData.startTime = time;
+                            instance.container.appendChild(emoteData.image);
+                        }
+                        if (time >= emoteData.startTime + emoteData.lifespan) {
                             emoteData.image.remove();
                             instance.emotes = instance.emotes.filter(e => e !== emoteData);
                             return;
-                        } else if (performance.now() >= emoteData.fadeOutStartTime) {
+                        } else if (time >= emoteData.startTime + emoteData.lifespan - FADE_DURATION * 1000) {
                             emoteData.opacity = Math.max(emoteData.opacity - (1 / FADE_DURATION) * deltaTime, 0);
                             emoteData.image.style.opacity = emoteData.opacity.toString();
                         } else if (emoteData.opacity < 1) {
@@ -150,7 +197,11 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                             emoteData.image.style.opacity = emoteData.opacity.toString();
                         }
 
-                        // Run other animations
+                        if (emoteData.animationData?.function) {
+                            await emoteData.animationData.function(deltaTime);
+                        }
+
+                        emoteData.image.style.transform = `translate3d(${emoteData.animationData?.x ?? 0}px, ${emoteData.animationData?.y ?? 0}px, ${emoteData.animationData?.z ?? 0}px) rotate(${emoteData.animationData?.rotation ?? 0}deg)`;
                     }));
                 }));
                 requestAnimationFrame(renderLoop);
@@ -178,7 +229,6 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                             const image = new Image();
                             image.style.opacity = "0";
                             image.style.position = "absolute";
-                            image.style.transform = "translate(-50%, -50%)";
                             image.onload = () => {
                                 if (image.naturalWidth >= image.naturalHeight) {
                                     image.style.width = `${maxWidth}px`;
@@ -198,18 +248,17 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     return (await Promise.all(imagePromises)).flat();
                 },
                 addImagesToWidget: async (widgetId, emotes) => {
-                    const emoteLifespan = Math.max(window.emoteWallData.widgetInstances[widgetId].settings.emoteDuration ?? DEFAULT_EMOTE_DURATION, MIN_EMOTE_DURATION);
-                    for (const emote of emotes) {
-                        emote.style.left = `${Math.random() * 100}%`;
-                        emote.style.top = `${Math.random() * 100}%`;
-                        window.emoteWallData.widgetInstances[widgetId]?.container?.appendChild(emote);
-                        window.emoteWallData.widgetInstances[widgetId]?.emotes.push({
-                            image: emote,
+                    const emoteLifespan = Math.max(window.emoteWallData.widgetInstances[widgetId].settings.emoteDuration ?? DEFAULT_EMOTE_DURATION, MIN_EMOTE_DURATION) * 1000;
+                    for (const emoteImage of emotes) {
+                        const emoteData: OverlayEmote = {
+                            image: emoteImage,
                             opacity: 0,
-                            startTime: performance.now(),
-                            fadeOutStartTime: performance.now() + (emoteLifespan - FADE_DURATION) * 1000,
-                            endTime: performance.now() + emoteLifespan * 1000
-                        });
+                            lifespan: emoteLifespan,
+                        };
+
+                        const setupAnimation = Object.values(animations)[Math.floor(Math.random() * Object.values(animations).length)];
+                        const animatedEmote = setupAnimation(widgetId, emoteData);
+                        window.emoteWallData.widgetInstances[widgetId]?.emotes.push(animatedEmote);
                     }
                 }
             };
