@@ -56,6 +56,29 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     }
                 ]
             }
+        },
+        {
+            name: "animations",
+            title: "Enabled Animations",
+            description: "The animations that can be randomly applied to emotes when they are displayed on the widget.",
+            type: "multiselect",
+            default: ["rise", "bounce"],
+            settings: {
+                options: [
+                    {
+                        id: "none",
+                        name: "None (static position)"
+                    },
+                    {
+                        id: "rise",
+                        name: "Rise"
+                    },
+                    {
+                        id: "bounce",
+                        name: "Bounce"
+                    }
+                ]
+            }
         }
     ],
     supportsLivePreview: true,
@@ -290,6 +313,8 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     return (await Promise.all(imagePromises)).flat();
                 },
                 addImagesToWidget: async (widgetId, emotes) => {
+                    const allowedAnimations = window.emoteWallData.widgetInstances[widgetId].settings.animations || [];
+                    const filteredAnimations = Object.entries(animations).filter(([key]) => allowedAnimations.length === 0 || allowedAnimations.includes(key)).map(([_, value]) => value);
                     const emoteLifespan = Math.max(window.emoteWallData.widgetInstances[widgetId].settings.emoteDuration ?? DEFAULT_EMOTE_DURATION, MIN_EMOTE_DURATION) * 1000;
                     for (const emoteImage of emotes) {
                         const emoteData: OverlayEmote = {
@@ -298,7 +323,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                             lifespan: emoteLifespan
                         };
 
-                        const setupAnimation = Object.values(animations)[Math.floor(Math.random() * Object.values(animations).length)];
+                        const setupAnimation = filteredAnimations[Math.floor(Math.random() * filteredAnimations.length)];
                         const animatedEmote = setupAnimation(widgetId, emoteData);
                         window.emoteWallData.widgetInstances[widgetId]?.emotes.push(animatedEmote);
                     }
