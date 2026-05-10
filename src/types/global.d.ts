@@ -9,7 +9,7 @@ declare global {
                 settings: EmoteWallWidgetConfig;
                 abortController: AbortController;
             }>;
-            renderEmote: (config: WidgetOverlayEvent<EmoteWallWidgetConfig>["data"]["widgetConfig"], utils: IOverlayWidgetEventUtils, emoteUrl: string) => Promise<void>;
+            renderEmotes: (config: WidgetOverlayEvent<EmoteWallWidgetConfig>["data"]["widgetConfig"], utils: IOverlayWidgetEventUtils, emoteUrl: string, amount: number) => Promise<void>;
         };
     }
 }

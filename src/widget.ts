@@ -64,7 +64,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     const emotesToSpawn = Math.floor(Math.random() * 2) + 1;
                     const eligibleEmotes = window.emoteWallData.livePreviewEmotes.filter(e => e.platform === "twitch" || instance.settings.thirdPartyEmotes.includes(e.platform as ThirdPartyEmotePlatform));
                     for (let i = 0; i < emotesToSpawn; i++) {
-                        void window.emoteWallData.renderEmote(config, utils, eligibleEmotes[Math.floor(Math.random() * eligibleEmotes.length)].url);
+                        void window.emoteWallData.renderEmotes(config, utils, eligibleEmotes[Math.floor(Math.random() * eligibleEmotes.length)].url, 1);
                     }
                 }, 1000);
             }
@@ -102,9 +102,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
 
                     const emotes: Emote[] = event.data.messageData as Emote[];
                     for (const emote of emotes) {
-                        for (let i = 0; i < emote.amount; i++) {
-                            void window.emoteWallData.renderEmote(event.data.widgetConfig, utils, emote.url);
-                        }
+                        void window.emoteWallData.renderEmotes(event.data.widgetConfig, utils, emote.url, emote.amount);
                     }
 
                     break;
@@ -131,27 +129,44 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     { platform: "7tv", url: "https://cdn.7tv.app/emote/01FZEWNFFG0003BMT7G3FYWE0F/4x.avif" }, // blobHype
                 ],
                 widgetInstances: {},
-                renderEmote: async (config, utils, emoteUrl) => {
-                    const instance = window.emoteWallData.widgetInstances[config.id];
-                    if (!instance) return;
-                    const container = utils.getWidgetContainerElement();
-                    if (!container || instance.abortController.signal.aborted) return;
-                    
-                    const emoteElement = document.createElement("img");
-                    emoteElement.src = emoteUrl;
-                    emoteElement.style.position = "absolute";
-                    emoteElement.style.left = `${Math.random() * 100}%`;
-                    emoteElement.style.top = `${Math.random() * 100}%`;
-                    emoteElement.style.transform = "translate(-50%, -50%)";
-                    emoteElement.style.width = "max-width";
-                    emoteElement.style.height = "auto";
-                    emoteElement.style.maxWidth = `${instance.settings.maxWidth}px`;
-                    emoteElement.style.maxHeight = `${instance.settings.maxHeight}px`;
-                    container.appendChild(emoteElement);
-                    setTimeout(() => {
-                        if (instance.abortController.signal.aborted) return;
-                        emoteElement.remove();
-                    }, 5000);
+                renderEmotes: async (config, utils, emoteUrl, amount) => {
+                    return new Promise((resolve) => {
+                        const instance = window.emoteWallData.widgetInstances[config.id];
+                        if (!instance) return;
+                        const container = utils.getWidgetContainerElement();
+                        if (!container || instance.abortController.signal.aborted) return;
+
+                        const emoteElement = document.createElement("img");
+                        emoteElement.onload = () => {
+                            const aspectRatio = emoteElement.naturalWidth / emoteElement.naturalHeight;
+                            if (emoteElement.naturalWidth > instance.settings.maxWidth) {
+                                emoteElement.style.width = `${instance.settings.maxWidth}px`;
+                                emoteElement.style.height = `${instance.settings.maxWidth / aspectRatio}px`;
+                            } else if (emoteElement.naturalHeight > instance.settings.maxHeight) {
+                                emoteElement.style.height = `${instance.settings.maxHeight}px`;
+                                emoteElement.style.width = `${instance.settings.maxHeight * aspectRatio}px`;
+                            } else {
+                                emoteElement.style.width = `${emoteElement.naturalWidth}px`;
+                                emoteElement.style.height = `${emoteElement.naturalHeight}px`;
+                            }
+
+                            for (let i = 0; i < amount; i++) {
+                                const emote = i === 0 ? emoteElement : emoteElement.cloneNode() as HTMLImageElement;
+                                emote.style.left = `${Math.random() * 100}%`;
+                                emote.style.top = `${Math.random() * 100}%`;
+                                container.appendChild(emote);
+                                setTimeout(() => {
+                                    if (instance.abortController.signal.aborted) return;
+                                    emote.remove();
+                                }, 5000);
+                            }
+
+                            resolve();
+                        };
+                        emoteElement.src = emoteUrl;
+                        emoteElement.style.position = "absolute";
+                        emoteElement.style.transform = "translate(-50%, -50%)";
+                    });
                 }
             };
         }
