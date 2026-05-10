@@ -163,7 +163,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                         vy: Math.random() * gravity + minDownwardVy,
                         function: (deltaTime) => {
                             emote.animationData!.y += (emote.animationData!.vy ?? 0) * deltaTime;
-                            const appliedGravity = emote.animationData!.vy! < 0 ? gravity * 2 : gravity;
+                            const appliedGravity = emote.animationData!.vy! < 0 ? gravity * 1.75 : gravity;
                             emote.animationData!.vy = Math.max(-maxVy, emote.animationData!.vy - appliedGravity * deltaTime);
                         }
                     };
