@@ -19,11 +19,8 @@ type EmoteWallAnimationData = {
     height: number;
     x: number;
     y: number;
-    z?: number;
     vx?: number;
     vy?: number;
-    vz?: number;
-    rotation?: number;
     function?: EmoteWallAnimateFunction;
 }
 

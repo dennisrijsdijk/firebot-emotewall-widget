@@ -62,7 +62,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
             title: "Enabled Animations",
             description: "The animations that can be randomly applied to emotes when they are displayed on the widget.",
             type: "multiselect",
-            default: ["rise", "bounce"],
+            default: ["rise", "rain", "bounce"],
             settings: {
                 options: [
                     {
@@ -351,7 +351,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                             await emoteData.animationData.function(deltaTime);
                         }
 
-                        emoteData.image.style.transform = `translate3d(${emoteData.animationData?.x ?? 0}px, ${emoteData.animationData?.y ?? 0}px, ${emoteData.animationData?.z ?? 0}px) rotate(${emoteData.animationData?.rotation ?? 0}deg)`;
+                        emoteData.image.style.transform = `translate(${emoteData.animationData?.x ?? 0}px, ${emoteData.animationData?.y ?? 0}px)`;
                     }));
                 }));
                 requestAnimationFrame(renderLoop);
