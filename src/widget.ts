@@ -74,6 +74,10 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                         name: "Rise"
                     },
                     {
+                        id: "rain",
+                        name: "Rain"
+                    },
+                    {
                         id: "bounce",
                         name: "Bounce"
                     }
@@ -81,13 +85,45 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
             }
         },
         {
-            name: "animationSpeedMultiplier",
-            title: "Animation Speed Multiplier",
-            description: "A multiplier applied to the speed of animations. Increase this value to make animations faster, or decrease it to make them slower.",
+            name: "riseAnimationSpeedMultiplier",
+            title: "Rise Animation Speed Multiplier",
+            description: "A multiplier applied to the speed of the rise animation. Increase this value to make the rise animation faster, or decrease it to make it slower.",
             type: "number",
             default: 1,
             validation: {
                 min: 0.1
+            },
+            // @ts-expect-error
+            showIf: {
+                animations: ["rise"]
+            }
+        },
+        {
+            name: "rainAnimationSpeedMultiplier",
+            title: "Rain Animation Speed Multiplier",
+            description: "A multiplier applied to the speed of the rain animation. Increase this value to make the rain animation faster, or decrease it to make it slower.",
+            type: "number",
+            default: 1,
+            validation: {
+                min: 0.1
+            },
+            // @ts-expect-error
+            showIf: {
+                animations: ["rain"]
+            }
+        },
+        {
+            name: "bounceAnimationSpeedMultiplier",
+            title: "Bounce Animation Speed Multiplier",
+            description: "A multiplier applied to the speed of the bounce animation. Increase this value to make the bounce animation faster, or decrease it to make it slower.",
+            type: "number",
+            default: 1,
+            validation: {
+                min: 0.1
+            },
+            // @ts-expect-error
+            showIf: {
+                animations: ["bounce"]
             }
         }
     ],
@@ -180,6 +216,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                 rise: (widgetId, emote) => {
                     const widgetWidth = window.emoteWallData.widgetInstances[widgetId]?.container?.clientWidth;
                     const widgetHeight = window.emoteWallData.widgetInstances[widgetId]?.container?.clientHeight;
+                    const deltaTimeModifier = window.emoteWallData.widgetInstances[widgetId].settings.riseAnimationSpeedMultiplier ?? 1;
                     const emoteWidth = parseFloat(emote.image.style.width.replace("px", ""));
                     const emoteHeight = parseFloat(emote.image.style.height.replace("px", ""));
                     const maxX = widgetWidth - emoteWidth;
@@ -195,6 +232,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                         height: emoteHeight,
                         vy: Math.random() * gravity + minDownwardVy,
                         function: (deltaTime) => {
+                            deltaTime *= deltaTimeModifier;
                             emote.animationData!.y += (emote.animationData!.vy ?? 0) * deltaTime;
                             const appliedGravity = emote.animationData!.vy! < 0 ? gravity * 1.75 : gravity;
                             emote.animationData!.vy = Math.max(-maxVy, emote.animationData!.vy - appliedGravity * deltaTime);
@@ -202,9 +240,45 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                     };
                     return emote;
                 },
+                rain: (widgetId, emote) => {
+                    const widgetWidth = window.emoteWallData.widgetInstances[widgetId]?.container?.clientWidth;
+                    const widgetHeight = window.emoteWallData.widgetInstances[widgetId]?.container?.clientHeight;
+                    const deltaTimeModifier = window.emoteWallData.widgetInstances[widgetId].settings.rainAnimationSpeedMultiplier ?? 1;
+                    const emoteWidth = parseFloat(emote.image.style.width.replace("px", ""));
+                    const emoteHeight = parseFloat(emote.image.style.height.replace("px", ""));
+                    const minX = 0;
+                    const maxX = widgetWidth - emoteWidth;
+                    const maxY = emoteHeight * 4;
+                    const minY = -emoteHeight * 4;
+                    const gravity = widgetHeight / 2;
+                    const minDownwardVy = gravity * 0.5;
+                    const maxVy = gravity * 2;
+                    const bounceRetention = 0.85;
+                    const bottomEdge = widgetHeight - emoteHeight;
+                    emote.animationData = {
+                        x: Math.random() * (maxX - minX) + minX,
+                        y: Math.random() * (maxY - minY) + minY,
+                        width: emoteWidth,
+                        height: emoteHeight,
+                        vy: Math.random() * (maxVy - minDownwardVy) + minDownwardVy,
+                        function: (deltaTime) => {
+                            deltaTime *= deltaTimeModifier;
+                            emote.animationData!.vy = Math.min(emote.animationData!.vy! + gravity * deltaTime, maxVy);
+                            emote.animationData!.y += (emote.animationData!.vy ?? 0) * deltaTime;
+
+                            if (emote.animationData!.y > bottomEdge) {
+                                emote.animationData!.y = bottomEdge;
+                                emote.animationData!.vy = -(emote.animationData!.vy) * bounceRetention;
+                            }
+                        }
+                    };
+
+                    return emote;
+                },
                 bounce: (widgetId, emote) => {
                     const widgetWidth = window.emoteWallData.widgetInstances[widgetId]?.container?.clientWidth;
                     const widgetHeight = window.emoteWallData.widgetInstances[widgetId]?.container?.clientHeight;
+                    const deltaTimeModifier = window.emoteWallData.widgetInstances[widgetId].settings.bounceAnimationSpeedMultiplier ?? 1;
                     const emoteWidth = parseFloat(emote.image.style.width.replace("px", ""));
                     const emoteHeight = parseFloat(emote.image.style.height.replace("px", ""));
                     const minY = -widgetHeight / 4;
@@ -230,6 +304,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                         vx: initialVx,
                         vy: Math.random() * (maxInitialVy - minInitialVy) + minInitialVy,
                         function: (deltaTime) => {
+                            deltaTime *= deltaTimeModifier;
                             emote.animationData!.vy += gravity * deltaTime;
                             emote.animationData!.x += (emote.animationData!.vx ?? 0) * deltaTime;
                             emote.animationData!.y += (emote.animationData!.vy ?? 0) * deltaTime;
@@ -256,8 +331,6 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
 
                 await Promise.all(Object.entries(window.emoteWallData.widgetInstances).map(([id, instance]) => {
                     return Promise.all(instance.emotes.map(async (emoteData) => {
-                        const animationDeltaTime = deltaTime * (instance.settings.animationSpeedMultiplier ?? 1);
-
                         if (!emoteData.startTime) {
                             emoteData.startTime = time;
                             instance.container.appendChild(emoteData.image);
@@ -275,7 +348,7 @@ const widget: OverlayWidgetType<EmoteWallWidgetConfig> = {
                         }
 
                         if (emoteData.animationData?.function) {
-                            await emoteData.animationData.function(animationDeltaTime);
+                            await emoteData.animationData.function(deltaTime);
                         }
 
                         emoteData.image.style.transform = `translate3d(${emoteData.animationData?.x ?? 0}px, ${emoteData.animationData?.y ?? 0}px, ${emoteData.animationData?.z ?? 0}px) rotate(${emoteData.animationData?.rotation ?? 0}deg)`;
